@@ -57,7 +57,7 @@ export default function DashboardPage() {
             Dashboard
           </h1>
           <p className="text-gray-600 mt-2">
-            Chào mừng {user?.name || 'bạn'} quay trại!
+            Chào mừng {user?.fullName || 'bạn'} quay trại!
           </p>
         </div>
 
