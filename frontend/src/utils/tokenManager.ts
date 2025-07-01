@@ -70,7 +70,7 @@ export class TokenManager {
   }
 
   // Get user info from access token
-  public getUserFromToken(): any | null {
+  public getUserFromToken(): unknown | null {
     const token = this.getAccessToken();
     if (!token) return null;
 

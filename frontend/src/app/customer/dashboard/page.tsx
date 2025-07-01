@@ -46,6 +46,7 @@ interface Booking {
 
 export default function CustomerDashboardPage() {
   const { user } = useAuth();
+  // Using selectedBooking for future modal implementation
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
 
   const getStatusColor = (status: string) => {

@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, Rea
 import { authService } from '@/services';
 import { STORAGE_KEYS } from '@/constants';
 import { User, LoginRequest, RegisterRequest, AuthResponse, AuthContextType, AuthState, Role } from '@/types';
+import { TokenManager } from '@/utils/tokenManager';
 
 // Create Context
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -22,54 +23,82 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     error: null,
   });
 
+  const tokenManager = TokenManager.getInstance();
+
   // Helper function to parse permissions from role
-  const parseRolePermissions = (roleData: any): Role => {
+  const parseRolePermissions = useCallback((roleData: unknown): Role => {
     let permissions: Record<string, string[]> = {};
     
     // Parse permissions from JSON string if it exists
-    if (roleData.permissions) {
-      try {
-        permissions = typeof roleData.permissions === 'string' 
-          ? JSON.parse(roleData.permissions) 
-          : roleData.permissions;
-      } catch (error) {
-        console.warn('Failed to parse role permissions:', error);
-        permissions = {};
+    if (roleData && typeof roleData === 'object' && 'permissions' in roleData) {
+      const data = roleData as { permissions?: string | Record<string, string[]>; id?: string; name?: string; displayName?: string };
+      if (data.permissions) {
+        try {
+          permissions = typeof data.permissions === 'string' 
+            ? JSON.parse(data.permissions) 
+            : data.permissions;
+        } catch (error) {
+          console.warn('Failed to parse role permissions:', error);
+          permissions = {};
+        }
       }
+
+      return {
+        id: data.id || '',
+        name: data.name || 'customer',
+        displayName: data.displayName || 'Khách hàng',
+        permissions,
+      };
     }
 
     return {
-      id: roleData.id || '',
-      name: roleData.name || 'customer',
-      displayName: roleData.displayName || 'Khách hàng',
-      permissions,
+      id: '',
+      name: 'customer',
+      displayName: 'Khách hàng',
+      permissions: {},
     };
-  };
+  }, []);
 
   // Helper function to parse user data
-  const parseUserData = (userData: any): User => {
-    const role = parseRolePermissions(userData.role || {});
+  const parseUserData = useCallback((userData: unknown): User => {
+    if (!userData || typeof userData !== 'object') {
+      throw new Error('Invalid user data');
+    }
+
+    const data = userData as {
+      id?: string;
+      fullName?: string;
+      email?: string;
+      role?: unknown;
+      phone?: string;
+      avatarUrl?: string;
+      isActive?: boolean;
+      emailVerifiedAt?: string;
+      lastLoginAt?: string;
+    };
+    
+    const role = parseRolePermissions(data.role || {});
     
     return {
-      id: userData.id,
-      fullName: userData.fullName,
-      email: userData.email,
+      id: data.id || '',
+      fullName: data.fullName || '',
+      email: data.email || '',
       role,
-      phone: userData.phone,
-      avatarUrl: userData.avatarUrl,
-      isActive: userData.isActive !== undefined ? userData.isActive : true,
-      emailVerifiedAt: userData.emailVerifiedAt,
-      lastLoginAt: userData.lastLoginAt,
+      phone: data.phone,
+      avatarUrl: data.avatarUrl,
+      isActive: data.isActive !== undefined ? data.isActive : true,
+      emailVerifiedAt: data.emailVerifiedAt,
+      lastLoginAt: data.lastLoginAt,
     };
-  };
+  }, [parseRolePermissions]);
 
   // Load user from localStorage on mount
   useEffect(() => {
     const loadUser = () => {
       try {
         const savedUser = localStorage.getItem(STORAGE_KEYS.USER);
-        const accessToken = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
-        const refreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
+        const accessToken = tokenManager.getAccessToken();
+        const refreshToken = tokenManager.getRefreshToken();
         
         console.log('🔍 Loading auth data:', { 
           savedUser: !!savedUser, 
@@ -101,9 +130,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } catch (error) {
         console.error('Error loading user from localStorage:', error);
         // Clear invalid data
-        localStorage.removeItem(STORAGE_KEYS.USER);
-        localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
-        localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+        tokenManager.clearTokens();
         
         setState(prev => ({
           ...prev,
@@ -113,7 +140,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
 
     loadUser();
-  }, []);
+  }, [parseUserData]);
+
+  // Setup auto-refresh token when user is authenticated
+  useEffect(() => {
+    if (state.isAuthenticated && state.refreshToken) {
+      const refreshTokenFn = async (token: string) => {
+        const response = await authService.refreshToken(token);
+        if (response.success && response.data) {
+          return {
+            accessToken: response.data.accessToken,
+            refreshToken: response.data.refreshToken,
+          };
+        }
+        throw new Error('Token refresh failed');
+      };
+
+      tokenManager.scheduleTokenRefresh(refreshTokenFn);
+    }
+  }, [state.isAuthenticated, state.refreshToken, tokenManager]);
 
   // Clear error function
   const clearError = useCallback(() => {
@@ -132,8 +177,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const user = parseUserData(userData);
         
         // Save to localStorage
-        localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
-        localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
+        tokenManager.setTokens(accessToken, refreshToken);
         localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userData));
         
         setState(prev => ({
@@ -149,8 +193,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } else {
         throw new Error(response.message || 'Login failed');
       }
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.message || error.message || 'Login failed';
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : typeof error === 'object' && error && 'response' in error && typeof error.response === 'object' && error.response && 'data' in error.response && typeof error.response.data === 'object' && error.response.data && 'message' in error.response.data
+          ? String(error.response.data.message)
+          : 'Login failed';
       setState(prev => ({
         ...prev,
         error: errorMessage,
@@ -168,9 +216,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.error('Logout error:', error);
     } finally {
       // Clear localStorage and state
-      localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
-      localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
-      localStorage.removeItem(STORAGE_KEYS.USER);
+      tokenManager.clearTokens();
       
       setState({
         user: null,
@@ -204,8 +250,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           const user = parseUserData(newUserData);
           
           // Save to localStorage
-          localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
-          localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
+          tokenManager.setTokens(accessToken, refreshToken);
           localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(newUserData));
           
           setState(prev => ({
@@ -228,8 +273,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } else {
         throw new Error(response.message || 'Registration failed');
       }
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.message || error.message || 'Registration failed';
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : typeof error === 'object' && error && 'response' in error && typeof error.response === 'object' && error.response && 'data' in error.response && typeof error.response.data === 'object' && error.response.data && 'message' in error.response.data
+          ? String(error.response.data.message)
+          : 'Registration failed';
       setState(prev => ({
         ...prev,
         error: errorMessage,
