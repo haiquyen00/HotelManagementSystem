@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Input, Button } from '@/components/ui';
-import { useAuth } from '@/hooks';
+import { useAuth } from '@/contexts';
 import { isValidEmail } from '@/utils';
 
 export const LoginForm: React.FC = () => {

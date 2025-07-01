@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useAuth } from '@/hooks';
+import { useAuth } from '@/contexts';
 import { Button } from '@/components/ui';
 
 export const Header: React.FC = () => {

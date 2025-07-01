@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts';
 import { authService } from '@/services';
 import { UserProfile, UpdateProfileRequest, ChangePasswordRequest } from '@/types';
 

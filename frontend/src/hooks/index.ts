@@ -1,5 +1,5 @@
 // Export tất cả hooks từ đây để dễ import
-export { useAuth } from './useAuth';
+// Note: useAuth is now exported from @/contexts
 export { useApi } from './useApi';
 export { useLocalStorage } from './useLocalStorage';
 export { usePagination } from './usePagination';

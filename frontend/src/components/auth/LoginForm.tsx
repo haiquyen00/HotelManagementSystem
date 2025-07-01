@@ -2,14 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts';
 import { LoginRequest } from '@/types';
 import GoogleLoginButton from './GoogleLoginButton';
 
 export default function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login, isLoading, error, clearError } = useAuth();
+  const { login, isLoading, error, clearError, user, isAuthenticated } = useAuth();
   
   const [formData, setFormData] = useState<LoginRequest>({
     email: '',
@@ -19,6 +19,31 @@ export default function LoginForm() {
 
   const [validationErrors, setValidationErrors] = useState<{[key: string]: string}>({});
   const [successMessage, setSuccessMessage] = useState<string>('');
+
+  // Handle role-based redirection after successful login
+  useEffect(() => {
+    if (isAuthenticated && user && !isLoading) {
+      console.log('🔄 Redirecting user based on role:', user.role.name);
+      
+      const redirectTo = searchParams.get('redirectTo');
+      
+      if (redirectTo) {
+        router.push(redirectTo);
+      } else {
+        // Default role-based redirection
+        switch (user.role.name) {
+          case 'admin':
+            router.push('/hotel/dashboard');
+            break;
+          case 'customer':
+            router.push('/customer/dashboard');
+            break;
+          default:
+            router.push('/dashboard');
+        }
+      }
+    }
+  }, [isAuthenticated, user, isLoading, router, searchParams]);
 
   // Check for verification success message
   useEffect(() => {
@@ -81,8 +106,7 @@ export default function LoginForm() {
 
     try {
       await login(formData);
-      // Redirect to dashboard after successful login
-      router.push('/dashboard');
+      // Role-based redirection is handled by useEffect above
     } catch (error) {
       // Error is handled by useAuth hook
       console.error('Login failed:', error);
