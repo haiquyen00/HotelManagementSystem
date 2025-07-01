@@ -1,20 +1,21 @@
 import type { Metadata } from "next";
-import { Rubik, Roboto } from "next/font/google";
+// Temporarily commented out Google fonts due to network issues in build environment
+// import { Rubik, Roboto } from "next/font/google";
 import "./globals.css";
 import { ToastProvider } from "@/hooks/useToast";
 import ToastContainer from "@/components/ui/ToastContainer";
 
-const rubik = Rubik({
-  variable: "--font-rubik",
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
-});
+// const rubik = Rubik({
+//   variable: "--font-rubik",
+//   subsets: ["latin"],
+//   weight: ["300", "400", "500", "600", "700"],
+// });
 
-const roboto = Roboto({
-  variable: "--font-roboto", 
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "700"],
-});
+// const roboto = Roboto({
+//   variable: "--font-roboto", 
+//   subsets: ["latin"],
+//   weight: ["300", "400", "500", "700"],
+// });
 
 export const metadata: Metadata = {
   title: "Hotel Management System",
@@ -29,7 +30,7 @@ export default function RootLayout({
   return (
     <html lang="vi">
       <body
-        className={`${rubik.variable} ${roboto.variable} antialiased font-roboto`}
+        className="antialiased font-sans"
       >
         <ToastProvider>
           {children}

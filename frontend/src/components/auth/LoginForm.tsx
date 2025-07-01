@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { LoginRequest } from '@/types';
+import GoogleLoginButton from './GoogleLoginButton';
 
 export default function LoginForm() {
   const router = useRouter();
@@ -207,6 +208,30 @@ export default function LoginForm() {
                 'Đăng nhập'
               )}
             </button>
+          </div>
+
+          {/* Divider */}
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-gray-50 text-gray-500">Hoặc</span>
+            </div>
+          </div>
+
+          {/* Google Login Button */}
+          <div>
+            <GoogleLoginButton
+              onSuccess={() => {
+                // Success handled by GoogleLoginButton component
+                console.log('Google login successful');
+              }}
+              onError={(error) => {
+                setError(error);
+              }}
+              disabled={isLoading}
+            />
           </div>
 
           {/* Links */}

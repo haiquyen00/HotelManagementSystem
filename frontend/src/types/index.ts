@@ -47,6 +47,10 @@ export interface RegisterRequest {
   phone?: string;
 }
 
+export interface GoogleLoginRequest {
+  googleToken: string;
+}
+
 export interface AuthDataResponse {
   accessToken: string;
   refreshToken: string;

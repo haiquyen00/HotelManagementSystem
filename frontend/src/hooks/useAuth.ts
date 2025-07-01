@@ -11,6 +11,7 @@ interface UseAuthReturn {
   isLoading: boolean;
   error: string | null;
   login: (credentials: LoginRequest) => Promise<void>;
+  googleLogin: (googleToken: string) => Promise<void>;
   register: (userData: RegisterRequest) => Promise<AuthResponse>;
   logout: () => void;
   refreshUser: () => Promise<void>;
@@ -79,6 +80,34 @@ export const useAuth = (): UseAuthReturn => {
       }
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || error.message || 'Login failed';
+      setError(errorMessage);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Google Login function
+  const googleLogin = useCallback(async (googleToken: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await authService.googleLogin(googleToken);
+      
+      if (response.success && response.data) {
+        const { accessToken, refreshToken, user: userData } = response.data;
+        
+        // Lưu vào localStorage
+        localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
+        localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
+        localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userData));
+        
+        setUser(userData);
+      } else {
+        throw new Error(response.message || 'Google login failed');
+      }
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || error.message || 'Google login failed';
       setError(errorMessage);
       throw error;
     } finally {
@@ -160,6 +189,7 @@ export const useAuth = (): UseAuthReturn => {
     isLoading,
     error,
     login,
+    googleLogin,
     register,
     logout,
     refreshUser,

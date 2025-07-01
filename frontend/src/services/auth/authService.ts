@@ -5,6 +5,7 @@ import {
   UserProfile,
   LoginRequest, 
   RegisterRequest, 
+  GoogleLoginRequest,
   AuthResponse,
   ChangePasswordRequest,
   UpdateProfileRequest,
@@ -18,6 +19,14 @@ export const authService = {
   // Đăng nhập
   async login(credentials: LoginRequest): Promise<AuthResponse> {
     const response = await api.post<AuthResponse>(API_ENDPOINTS.LOGIN, credentials);
+    return response.data;
+  },
+
+  // Đăng nhập với Google
+  async googleLogin(googleToken: string): Promise<AuthResponse> {
+    const response = await api.post<AuthResponse>(API_ENDPOINTS.GOOGLE_LOGIN, {
+      googleToken,
+    });
     return response.data;
   },
 
