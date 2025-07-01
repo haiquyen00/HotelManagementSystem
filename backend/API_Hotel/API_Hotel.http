@@ -1,0 +1,6 @@
+@API_Hotel_HostAddress = http://localhost:5186
+
+GET {{API_Hotel_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

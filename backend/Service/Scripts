@@ -1,0 +1,66 @@
+using Microsoft.EntityFrameworkCore;
+using Business.Data;
+using Service.Interfaces;
+
+namespace Business.Scripts
+{
+    /// <summary>
+    /// Script to migrate old password hashes to BCrypt format
+    /// Run this once to update all existing users
+    /// </summary>
+    public class PasswordMigrationScript
+    {
+        private readonly HotelManagementDbContext _context;
+        private readonly IPasswordService _passwordService;
+
+        public PasswordMigrationScript(HotelManagementDbContext context, IPasswordService passwordService)
+        {
+            _context = context;
+            _passwordService = passwordService;
+        }
+
+        public async Task MigratePasswordsAsync()
+        {
+            Console.WriteLine("🔄 Starting password migration...");
+
+            var users = await _context.Users.ToListAsync();
+            int updated = 0;
+
+            foreach (var user in users)
+            {
+                // Check if password is already BCrypt format
+                if (IsBCryptHash(user.PasswordHash))
+                {
+                    Console.WriteLine($"✅ User {user.Email} already has BCrypt password");
+                    continue;
+                }
+
+                // For demonstration, set a default password for old users
+                // In real scenario, you might want to force password reset
+                string defaultPassword = "TempPass123!";
+                user.PasswordHash = _passwordService.HashPassword(defaultPassword);
+                
+                Console.WriteLine($"🔄 Updated password for user: {user.Email}");
+                updated++;
+            }
+
+            if (updated > 0)
+            {
+                await _context.SaveChangesAsync();
+                Console.WriteLine($"✅ Migration completed! Updated {updated} users.");
+                Console.WriteLine("⚠️  All migrated users now have password: TempPass123!");
+                Console.WriteLine("💡 Users should be notified to change their passwords.");
+            }
+            else
+            {
+                Console.WriteLine("✅ No migration needed. All passwords are already in BCrypt format.");
+            }
+        }
+
+        private bool IsBCryptHash(string hash)
+        {
+            // BCrypt hashes start with $2a$, $2b$, $2x$, or $2y$
+            return hash != null && hash.StartsWith("$2");
+        }
+    }
+}
