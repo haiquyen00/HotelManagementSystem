@@ -13,14 +13,25 @@ export interface ErrorDetail {
   value?: any;
 }
 
+// Role and Permission Types
+export interface Role {
+  id: string;
+  name: string; // admin, customer, manager
+  displayName: string; // "Quản trị viên", "Khách hàng"
+  permissions: Record<string, string[]>; // Parsed from JSON
+}
+
 // User Types
 export interface User {
   id: string;
   fullName: string;
   email: string;
-  role: string;
+  role: Role;
   phone?: string;
   avatarUrl?: string;
+  isActive: boolean;
+  emailVerifiedAt?: string;
+  lastLoginAt?: string;
 }
 
 export interface UserProfile extends User {
@@ -30,6 +41,26 @@ export interface UserProfile extends User {
   lastLoginAt?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+// Auth State Types
+export interface AuthState {
+  user: User | null;
+  accessToken: string | null;
+  refreshToken: string | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  error: string | null;
+}
+
+export interface AuthContextType extends AuthState {
+  login: (credentials: LoginRequest) => Promise<void>;
+  logout: () => Promise<void>;
+  register: (userData: RegisterRequest) => Promise<AuthResponse>;
+  refreshUser: () => Promise<void>;
+  checkPermission: (permission: string) => boolean;
+  hasRole: (role: string) => boolean;
+  clearError: () => void;
 }
 
 // Auth Types

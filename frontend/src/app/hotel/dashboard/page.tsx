@@ -10,6 +10,7 @@ import {
   ChartBarIcon, 
   CurrencyIcon 
 } from '@/components/icons/HotelIcons';
+import { RoleBasedRoute } from '@/components/guards';
 
 export default function HotelDashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
@@ -24,8 +25,9 @@ export default function HotelDashboardPage() {
   }, []);
 
   return (
-    <HotelLayout>
-      <div className="space-y-6">
+    <RoleBasedRoute allowedRoles={['admin']}>
+      <HotelLayout>
+        <div className="space-y-6">
         <div>
           <h2 className="text-3xl font-bold text-deep-navy">
             Hotel Management Dashboard
@@ -199,5 +201,6 @@ export default function HotelDashboardPage() {
         )}
       </div>
     </HotelLayout>
+    </RoleBasedRoute>
   );
 }

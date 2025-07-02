@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts';
 import { useRouter } from 'next/navigation';
 
 interface GoogleLoginButtonProps {

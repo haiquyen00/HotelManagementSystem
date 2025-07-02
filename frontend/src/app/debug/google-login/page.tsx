@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts';
 import GoogleLoginButton from '@/components/auth/GoogleLoginButton';
 
 export default function GoogleLoginDebugPage() {

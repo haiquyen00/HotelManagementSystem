@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { ToastProvider } from "@/hooks/useToast";
 import ToastContainer from "@/components/ui/ToastContainer";
+import { AuthProvider } from "@/contexts";
 
 // const rubik = Rubik({
 //   variable: "--font-rubik",
@@ -32,10 +33,12 @@ export default function RootLayout({
       <body
         className="antialiased font-sans"
       >
-        <ToastProvider>
-          {children}
-          <ToastContainer />
-        </ToastProvider>
+        <AuthProvider>
+          <ToastProvider>
+            {children}
+            <ToastContainer />
+          </ToastProvider>
+        </AuthProvider>
       </body>
     </html>
   );
