@@ -29,6 +29,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const parseRolePermissions = useCallback((roleData: unknown): Role => {
     let permissions: Record<string, string[]> = {};
     
+    // If roleData is just a string (role name), create basic role object
+    if (typeof roleData === 'string') {
+      return {
+        id: '',
+        name: roleData,
+        displayName: roleData === 'admin' ? 'Quản trị viên' : 
+                     roleData === 'manager' ? 'Quản lý' : 
+                     roleData === 'staff' ? 'Nhân viên' : 'Khách hàng',
+        permissions: {},
+      };
+    }
+    
     // Parse permissions from JSON string if it exists
     if (roleData && typeof roleData === 'object' && 'permissions' in roleData) {
       const data = roleData as { permissions?: string | Record<string, string[]>; id?: string; name?: string; displayName?: string };
@@ -208,6 +220,49 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, []);
 
+  // Google Login function
+  const googleLogin = useCallback(async (googleToken: string) => {
+    setState(prev => ({ ...prev, isLoading: true, error: null }));
+    
+    try {
+      const response = await authService.googleLogin(googleToken);
+      
+      if (response.success && response.data) {
+        const { accessToken, refreshToken, user: userData } = response.data;
+        const user = parseUserData(userData);
+        
+        // Save to localStorage
+        tokenManager.setTokens(accessToken, refreshToken);
+        localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userData));
+        
+        setState(prev => ({
+          ...prev,
+          user,
+          accessToken,
+          refreshToken,
+          isAuthenticated: true,
+          isLoading: false,
+        }));
+        
+        console.log('✅ Google login successful:', user);
+      } else {
+        throw new Error(response.message || 'Google login failed');
+      }
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : typeof error === 'object' && error && 'response' in error && typeof error.response === 'object' && error.response && 'data' in error.response && typeof error.response.data === 'object' && error.response.data && 'message' in error.response.data
+          ? String(error.response.data.message)
+          : 'Google login failed';
+      setState(prev => ({
+        ...prev,
+        error: errorMessage,
+        isLoading: false,
+      }));
+      throw error;
+    }
+  }, []);
+
   // Logout function
   const logout = useCallback(async () => {
     try {
@@ -328,6 +383,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const contextValue: AuthContextType = {
     ...state,
     login,
+    googleLogin,
     logout,
     register,
     refreshUser,

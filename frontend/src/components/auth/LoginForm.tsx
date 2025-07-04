@@ -19,6 +19,7 @@ export default function LoginForm() {
 
   const [validationErrors, setValidationErrors] = useState<{[key: string]: string}>({});
   const [successMessage, setSuccessMessage] = useState<string>('');
+  const [localError, setLocalError] = useState<string>('');
 
   // Handle role-based redirection after successful login
   useEffect(() => {
@@ -131,9 +132,9 @@ export default function LoginForm() {
           )}
 
           {/* General Error */}
-          {error && (
+          {(error || localError) && (
             <div className="rounded-md bg-red-50 p-4">
-              <div className="text-sm text-red-700">{error}</div>
+              <div className="text-sm text-red-700">{error || localError}</div>
             </div>
           )}
 
@@ -252,7 +253,7 @@ export default function LoginForm() {
                 console.log('Google login successful');
               }}
               onError={(error) => {
-                setError(error);
+                setLocalError(error);
               }}
               disabled={isLoading}
             />

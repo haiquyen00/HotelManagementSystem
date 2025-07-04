@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useAuth } from '@/contexts';
+import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 
 interface GoogleLoginButtonProps {
@@ -31,6 +31,7 @@ export default function GoogleLoginButton({
   disabled = false 
 }: GoogleLoginButtonProps) {
   const { googleLogin, isLoading } = useAuth();
+
   const router = useRouter();
   const [scriptLoaded, setScriptLoaded] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);

@@ -83,6 +83,17 @@ namespace Service.Implementations
                     };
 
                     user = await _userService.CreateAsync(user);
+                    
+                    // Reload user with Role navigation property
+                    user = await _userService.GetByIdAsync(user.Id);
+                    if (user == null)
+                    {
+                        return new AuthResponse
+                        {
+                            Success = false,
+                            Message = "Failed to load user after creation"
+                        };
+                    }
                 }
                 else
                 {
