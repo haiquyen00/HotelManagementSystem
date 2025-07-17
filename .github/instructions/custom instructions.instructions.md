@@ -47,15 +47,31 @@ applyTo: '**'
 - Responsive design: mobile-first approach
 
 ### API Integration:
-- Tạo service layer riêng biệt
-- Sử dụng custom hooks cho API calls
+- Tạo service layer riêng biệt (`hotelService.ts`)
+- Sử dụng custom hooks cho API calls (`useAmenities.ts`)
 - Proper error handling với toast notifications
 - Loading states cho tất cả async operations
+- Standardized API response handling với `ApiResponse<T>`
+- Bulk operations support (create, update, delete)
+
+### Component Patterns:
+- Modal với glass morphism effects
+- IconPicker với categorized selection
+- ConfirmDialog cho destructive actions
+- Reusable UI components trong `src/components/ui/`
+- Custom hooks cho business logic
+
+### State Management:
+- Local state với useState/useCallback
+- Custom hooks cho complex logic
+- Optimistic updates với proper error handling
+- Loading states per operation type
 
 ### Performance:
 - Lazy loading cho heavy components
 - Memoization cho expensive calculations
 - Optimize images với Next.js Image component
+- Debounced search implementation
 
 ## 🏗️ III. HƯỚNG DẪN .NET API BACKEND
 
@@ -421,5 +437,516 @@ POST /api/hotels
 - README files cho features
 - Setup và deployment guides
 
----
+## 🚀 VIII. DEVELOPMENT WORKFLOW
+
+### Module Development Process:
+1. **Planning & Analysis**
+   - Xác định requirements và scope
+   - Thiết kế database schema (entities, relationships)
+   - Define API endpoints với authorization
+   - Plan frontend UI/UX components
+
+2. **Backend First Approach**
+   - Tạo Entity models và DbContext configuration
+   - Implement Repository interfaces và implementations
+   - Develop Service layer với business logic
+   - Create Controller với proper authorization
+   - Add Swagger documentation
+   - Write unit tests cho core functionality
+
+3. **Frontend Development**
+   - Create TypeScript types matching backend DTOs
+   - Implement API service layer
+   - Develop custom hooks cho state management
+   - Build reusable UI components
+   - Create main page với full functionality
+   - Add error handling và loading states
+
+4. **Integration & Testing**
+   - Test API endpoints với Postman/Swagger
+   - Verify frontend-backend integration
+   - Test user permissions và authorization
+   - Performance testing với large datasets
+   - UI responsiveness testing
+
+5. **Documentation & Deployment**
+   - Update API documentation
+   - Write component documentation
+   - Update Custom Instructions với new patterns
+   - Git commit với descriptive messages
+   - Deployment preparation
+
+### Code Quality Standards:
+**Backend:**
+```csharp
+// ✅ DO: Consistent naming và structure
+public class AmenityService : IAmenityService
+{
+    private readonly IAmenityRepository _repository;
+    private readonly ILogger<AmenityService> _logger;
+    
+    // ✅ Proper error handling
+    public async Task<ServiceResult<T>> MethodAsync(Request request)
+    {
+        try
+        {
+            // Validation first
+            if (await _repository.ExistsAsync(request.Name))
+                return ServiceResult<T>.ErrorResult("Already exists");
+                
+            // Business logic
+            var entity = MapRequestToEntity(request);
+            
+            // Repository call
+            var result = await _repository.CreateAsync(entity);
+            
+            return ServiceResult<T>.SuccessResult(MapEntityToDto(result));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in {Method}", nameof(MethodAsync));
+            return ServiceResult<T>.ErrorResult("System error");
+        }
+    }
+}
+```
+
+**Frontend:**
+```typescript
+// ✅ DO: Consistent hook pattern
+export const useResource = () => {
+    const [data, setData] = useState<T[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    
+    const loadData = useCallback(async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const result = await service.getData();
+            setData(result);
+        } catch (err) {
+            setError(err.message);
+            showToast.error(err.message);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+    
+    return { data, isLoading, error, loadData, createItem, updateItem, deleteItem };
+};
+```
+
+### Testing Strategy:
+**Backend Unit Tests:**
+```csharp
+[Test]
+public async Task CreateAmenity_WithValidData_ShouldReturnSuccess()
+{
+    // Arrange
+    var request = new CreateAmenityRequest { Name = "Test Amenity" };
+    
+    // Act
+    var result = await _service.CreateAsync(request);
+    
+    // Assert
+    Assert.IsTrue(result.Success);
+    Assert.IsNotNull(result.Data);
+}
+```
+
+**Frontend Component Tests:**
+```typescript
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+
+test('should create amenity when form is submitted', async () => {
+    render(<AmenityForm onSubmit={mockSubmit} />);
+    
+    fireEvent.change(screen.getByLabelText('Tên tiện ích'), {
+        target: { value: 'Test Amenity' }
+    });
+    
+    fireEvent.click(screen.getByText('Tạo mới'));
+    
+    await waitFor(() => {
+        expect(mockSubmit).toHaveBeenCalledWith({
+            name: 'Test Amenity'
+        });
+    });
+});
+```
+
+### Performance Guidelines:
+**Database:**
+- Sử dụng pagination cho large datasets
+- Add indexes cho frequently queried fields
+- Use projection cho DTOs (select specific fields)
+- Implement caching cho static data
+
+**Frontend:**
+- Lazy load components với React.lazy()
+- Debounce search inputs
+- Memoize expensive calculations
+- Virtual scrolling cho large lists
+
+### Security Checklist:
+- ✅ Authorization policies properly configured
+- ✅ Input validation on both frontend and backend
+- ✅ SQL injection prevention với Entity Framework
+- ✅ XSS prevention với proper sanitization
+- ✅ CSRF protection với proper headers
+- ✅ Secure token storage và transmission
+
+## 🎯 VII. PROVEN PATTERNS (từ Amenities Management)
+
+### Backend Architecture Patterns:
+**Controller Design:**
+```csharp
+[ApiController]
+[Route("api/[controller]")]
+[Authorize] // Base authentication required
+public class AmenitiesController : ControllerBase
+{
+    // Public endpoints: [AllowAnonymous]
+    // Staff+ endpoints: [Authorize(Policy = "StaffOrAbove")]  
+    // Manager+ endpoints: [Authorize(Policy = "ManagerOrAbove")]
+    
+    // Standardized response format
+    return Ok(new ApiResponse<T> { Success = true, Data = result });
+}
+```
+
+**Service Layer Pattern:**
+```csharp
+public interface IAmenityService
+{
+    Task<ServiceResult<T>> MethodAsync(params);
+}
+
+public class AmenityService : IAmenityService
+{
+    // Validation -> Business Logic -> Repository Call -> Response
+    public async Task<ServiceResult<AmenityDto>> CreateAsync(CreateAmenityRequest request)
+    {
+        // 1. Validation
+        if (await _repository.NameExistsAsync(request.Name))
+            return ServiceResult<AmenityDto>.ErrorResult("Tên đã tồn tại");
+            
+        // 2. Business Logic
+        var entity = MapToEntity(request);
+        
+        // 3. Repository Call
+        var result = await _repository.CreateAsync(entity);
+        
+        // 4. Return Success/Error
+        return ServiceResult<AmenityDto>.SuccessResult(MapToDto(result));
+    }
+}
+```
+
+**Repository Pattern:**
+```csharp
+public interface IAmenityRepository : IBaseRepository<Amenity>
+{
+    Task<(IEnumerable<Amenity> items, int totalCount)> GetPagedAsync(params);
+    Task<bool> NameExistsAsync(string name, Guid? excludeId = null);
+    Task<IEnumerable<Amenity>> SearchAsync(string searchTerm);
+}
+```
+
+### Frontend Architecture Patterns:
+**Custom Hook Pattern:**
+```typescript
+export const useAmenities = () => {
+    const [state, setState] = useState<State>();
+    const [isLoading, setIsLoading] = useState(false);
+    
+    const loadData = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const data = await hotelService.getAmenities();
+            setState(data);
+        } catch (error) {
+            showError(error.message);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [dependencies]);
+    
+    return { data: state, isLoading, loadData, createItem, updateItem, deleteItem };
+};
+```
+
+**Service Layer Pattern:**
+```typescript
+export const hotelService = {
+    async getAmenities(params?: SearchParams): Promise<Amenity[]> {
+        const response = await api.get<ApiResponse<Amenity[]>>('/amenities', { params });
+        return response.data.data; // Extract data from ApiResponse
+    },
+    
+    async createAmenity(data: CreateRequest): Promise<Amenity> {
+        const response = await api.post<ApiResponse<Amenity>>('/amenities', data);
+        return response.data.data;
+    }
+};
+```
+
+**Component Composition Pattern:**
+```tsx
+const ManagementPage = () => {
+    const { 
+        items, isLoading, createItem, updateItem, deleteItem, bulkDelete 
+    } = useAmenities();
+    
+    return (
+        <div className="space-y-6">
+            <SearchAndFilter onSearch={handleSearch} onFilter={handleFilter} />
+            <BulkActions selectedIds={selectedIds} onBulkDelete={bulkDelete} />
+            <DataGrid 
+                data={items} 
+                isLoading={isLoading}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+            />
+            <Modal isOpen={showModal} onClose={() => setShowModal(false)}>
+                <ItemForm onSubmit={isEditing ? updateItem : createItem} />
+            </Modal>
+        </div>
+    );
+};
+```
+
+### UI/UX Patterns:
+**Glass Morphism Modal:**
+```css
+.modal-backdrop {
+    background: rgba(59, 130, 246, 0.1);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.modal-content {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+```
+
+**Icon Picker Component:**
+```tsx
+const IconPicker = ({ value, onChange }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [selectedCategory, setSelectedCategory] = useState('All');
+    
+    const filteredIcons = ICONS.filter(icon => 
+        selectedCategory === 'All' || icon.category === selectedCategory
+    );
+    
+    return (
+        <div className="relative">
+            <button onClick={() => setIsOpen(!isOpen)}>
+                {selectedIcon ? selectedIcon.emoji : 'Chọn icon'}
+            </button>
+            {isOpen && (
+                <div className="absolute z-50 mt-1 w-full">
+                    <CategoryFilter />
+                    <IconGrid icons={filteredIcons} onSelect={onChange} />
+                </div>
+            )}
+        </div>
+    );
+};
+```
+
+### Error Handling Patterns:
+**Backend:**
+```csharp
+try
+{
+    var result = await _service.ProcessAsync(request);
+    return result.Success 
+        ? Ok(ApiResponse<T>.SuccessResult(result.Data, result.Message))
+        : BadRequest(ApiResponse<T>.ErrorResult(result.Message, result.Errors));
+}
+catch (ValidationException ex)
+{
+    return BadRequest(ApiResponse<T>.ValidationErrorResult(ex.Errors));
+}
+catch (NotFoundException ex)
+{
+    return NotFound(ApiResponse<T>.ErrorResult(ex.Message));
+}
+catch (Exception ex)
+{
+    _logger.LogError(ex, "Unexpected error in {Method}", nameof(MethodName));
+    return StatusCode(500, ApiResponse<T>.ErrorResultWithCode(ErrorCodes.SRV_INTERNAL_ERROR));
+}
+```
+
+**Frontend:**
+```typescript
+const handleOperation = async () => {
+    setIsLoading(true);
+    try {
+        await operationCall();
+        success('Thao tác thành công!');
+        await refreshData(); // Refresh UI
+    } catch (error) {
+        if (error.response?.status === 400) {
+            showError('Dữ liệu không hợp lệ');
+        } else if (error.response?.status === 403) {
+            showError('Bạn không có quyền thực hiện thao tác này');
+        } else {
+            showError('Có lỗi xảy ra. Vui lòng thử lại.');
+        }
+    } finally {
+        setIsLoading(false);
+    }
+};
+```
+
+### Bulk Operations Pattern:
+**API Design:**
+```csharp
+[HttpDelete("bulk")]
+[Authorize(Policy = "ManagerOrAbove")]
+public async Task<ActionResult<ApiResponse<bool>>> BulkDelete([FromBody] List<Guid> ids)
+{
+    var result = await _service.BulkDeleteAsync(ids);
+    return result.Success ? Ok(result) : BadRequest(result);
+}
+```
+
+**Frontend Implementation:**
+```tsx
+const BulkActions = ({ selectedIds, onBulkDelete }) => {
+    const handleBulkDelete = async () => {
+        const confirmed = await showConfirmDialog({
+            title: 'Xóa nhiều tiện ích',
+            message: `Bạn có chắc muốn xóa ${selectedIds.length} tiện ích?`
+        });
+        
+        if (confirmed) {
+            await onBulkDelete(selectedIds);
+        }
+    };
+    
+    return (
+        <div className="flex space-x-2">
+            <button onClick={handleBulkDelete} disabled={selectedIds.length === 0}>
+                Xóa đã chọn ({selectedIds.length})
+            </button>
+        </div>
+    );
+};
+```
+
+## 🗺️ IX. MODULE DEVELOPMENT ROADMAP
+
+### Completed Modules:
+✅ **Amenities Management** (Production Ready)
+- Full CRUD với role-based permissions
+- Bulk operations với confirmation dialogs
+- Visual icon picker với categorized selection
+- Real-time search và filtering
+- Glass morphism UI với responsive design
+- Comprehensive API với 14 endpoints
+- Complete documentation và testing
+
+### Next Priority Modules:
+
+#### 🏨 **1. Room Types Management** (Recommended Next)
+**Why this module:** Foundation cho booking system
+**Key Features:**
+- CRUD operations cho room types
+- Image upload và gallery management
+- Pricing configuration per room type
+- Amenities assignment to room types
+- Availability và capacity management
+- Seasonal pricing rules
+
+**Technical Implementation:**
+- Follow Amenities pattern: Controller → Service → Repository
+- Image upload service với file validation
+- Many-to-many relationship với Amenities
+- Pricing calculation logic
+- Status management (Available/Maintenance/Discontinued)
+
+#### 🏪 **2. Rooms Management**
+**Dependencies:** Room Types module
+**Key Features:**
+- Individual room assignment to types
+- Room status tracking (Available/Occupied/Cleaning/Maintenance)
+- Room numbering system
+- Maintenance scheduling
+- Guest check-in/check-out tracking
+
+#### 📅 **3. Booking System**
+**Dependencies:** Room Types + Rooms modules
+**Key Features:**
+- Availability calendar
+- Reservation creation và management
+- Check-in/check-out process
+- Payment integration
+- Booking modifications và cancellations
+- Guest communication
+
+#### 👥 **4. Customer Management**
+**Key Features:**
+- Customer profiles và history
+- Loyalty program integration
+- Booking history
+- Preferences tracking
+- Communication log
+
+#### 📊 **5. Dashboard & Analytics**
+**Dependencies:** All previous modules
+**Key Features:**
+- Revenue analytics
+- Occupancy rates
+- Performance metrics
+- Booking trends
+- Customer insights
+
+### Development Patterns to Reuse:
+1. **Backend Architecture:**
+   - Clean Architecture với Service/Repository patterns
+   - ServiceResult<T> cho consistent responses
+   - Authorization policies
+   - Swagger documentation
+   - Bulk operations support
+
+2. **Frontend Architecture:**
+   - Custom hooks pattern (useRoomTypes, useBookings, etc.)
+   - Reusable UI components
+   - Modal forms với validation
+   - Search và filter capabilities
+   - Loading states và error handling
+
+3. **Database Design:**
+   - Base entity pattern
+   - Proper relationships với foreign keys
+   - Enum conversions
+   - Audit trail (CreatedAt, UpdatedAt)
+
+### Technical Debt & Improvements:
+- [ ] Implement unit testing suite
+- [ ] Add integration tests
+- [ ] Performance optimization cho large datasets
+- [ ] Caching layer implementation
+- [ ] Real-time notifications với SignalR
+- [ ] Mobile responsive improvements
+- [ ] Accessibility (WCAG) compliance
+- [ ] Internationalization (i18n) support
+
+### Module Estimation:
+- **Room Types Management:** 2-3 days
+- **Rooms Management:** 2-3 days  
+- **Booking System:** 5-7 days
+- **Customer Management:** 3-4 days
+- **Dashboard & Analytics:** 4-5 days
+
+**Total Project Completion:** ~3-4 weeks với current patterns
 
