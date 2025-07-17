@@ -3,11 +3,12 @@
 import { useState, useEffect } from 'react';
 import { HotelLayout } from '@/components/layout';
 import { Button } from '@/components/ui/Button';
-import { Table } from '@/components/ui/Table';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
+import { IconPicker } from '@/components/ui/IconPicker';
 import { Card } from '@/components/ui/Card';
 import { useToast } from '@/hooks/useToast';
+import { useAmenities } from '@/hooks/useAmenities';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import { 
   CogIcon, 
@@ -18,126 +19,116 @@ import {
 import type { Amenity } from '@/types/hotel';
 
 export default function AmenitiesPage() {
-  const [amenities, setAmenities] = useState<Amenity[]>([]);
+  const {
+    amenities,
+    categories,
+    isLoading,
+    isCreating,
+    isUpdating,
+    isDeleting,
+    searchTerm,
+    selectedCategory,
+    setSearchTerm,
+    setSelectedCategory,
+    createAmenity,
+    updateAmenity,
+    deleteAmenity,
+    toggleAmenityStatus,
+    bulkDelete,
+    bulkUpdateStatus,
+    refreshAmenities
+  } = useAmenities();
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAmenity, setEditingAmenity] = useState<Amenity | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; amenity: Amenity | null }>({
     isOpen: false,
     amenity: null
   });
-  const [isLoading, setIsLoading] = useState(false);
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState<{ isOpen: boolean; count: number }>({
+    isOpen: false,
+    count: 0
+  });
+  const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
   const { success, error, warning } = useToast();
+  
   const [formData, setFormData] = useState({
     name: '',
+    nameEn: '',
     description: '',
-    category: 'general' as 'general' | 'room' | 'hotel' | 'wellness',
+    category: '',
     icon: '',
-    isActive: true
+    isActive: true,
+    sortOrder: 0
   });
 
-  // Mock data - replace with API call
-  useEffect(() => {
-    const mockAmenities: Amenity[] = [
-      {
-        id: '1',
-        name: 'Wi-Fi miễn phí',
-        description: 'Internet tốc độ cao miễn phí trong toàn bộ khách sạn',
-        category: 'general',
-        icon: '📶',
-        isActive: true,
-        createdAt: new Date('2024-01-15'),
-        updatedAt: new Date('2024-01-15')
-      },
-      {
-        id: '2',
-        name: 'Hồ bơi',
-        description: 'Hồ bơi ngoài trời với view biển tuyệt đẹp',
-        category: 'wellness',
-        icon: '🏊‍♂️',
-        isActive: true,
-        createdAt: new Date('2024-01-10'),
-        updatedAt: new Date('2024-01-10')
-      },
-      {
-        id: '3',
-        name: 'Phòng gym',
-        description: 'Phòng tập gym hiện đại với đầy đủ thiết bị',
-        category: 'wellness',
-        icon: '💪',
-        isActive: true,
-        createdAt: new Date('2024-01-12'),
-        updatedAt: new Date('2024-01-12')
-      },
-      {
-        id: '4',
-        name: 'Spa',
-        description: 'Dịch vụ spa cao cấp với các liệu pháp thư giãn',
-        category: 'wellness',
-        icon: '🧘‍♀️',
-        isActive: true,
-        createdAt: new Date('2024-01-08'),
-        updatedAt: new Date('2024-01-08')
-      },
-      {
-        id: '5',
-        name: 'Nhà hàng',
-        description: 'Nhà hàng phục vụ các món ăn địa phương và quốc tế',
-        category: 'hotel',
-        icon: '🍽️',
-        isActive: true,
-        createdAt: new Date('2024-01-05'),
-        updatedAt: new Date('2024-01-05')
-      }
-    ];
-    setAmenities(mockAmenities);
-  }, []);
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     
+    // Validation
+    if (!formData.name.trim()) {
+      error('Tên tiện ích không được để trống');
+      return;
+    }
+    if (!formData.category.trim()) {
+      error('Danh mục không được để trống');
+      return;
+    }
+    if (!formData.icon.trim()) {
+      error('Icon không được để trống');
+      return;
+    }
+
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
       if (editingAmenity) {
         // Update existing amenity
-        setAmenities(prev => prev.map(a => 
-          a.id === editingAmenity.id 
-            ? { ...a, ...formData, updatedAt: new Date() }
-            : a
-        ));
-        success('Cập nhật tiện ích thành công', `${formData.name} đã được cập nhật`);
+        const result = await updateAmenity(editingAmenity.id, formData);
+        if (result) {
+          resetForm();
+        }
       } else {
-        // Add new amenity
-        const newAmenity: Amenity = {
-          id: Date.now().toString(),
-          ...formData,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        };
-        setAmenities(prev => [...prev, newAmenity]);
-        success('Thêm tiện ích thành công', `${formData.name} đã được thêm vào danh sách`);
+        // Create new amenity
+        const result = await createAmenity(formData);
+        if (result) {
+          resetForm();
+        }
       }
-
-      resetForm();
     } catch (err) {
       error('Có lỗi xảy ra', 'Vui lòng thử lại sau');
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const handleEdit = (amenity: Amenity) => {
+    console.log('Editing amenity:', amenity); // Debug log
     setEditingAmenity(amenity);
     setFormData({
-      name: amenity.name,
-      description: amenity.description,
-      category: amenity.category,
-      icon: amenity.icon,
-      isActive: amenity.isActive
+      name: amenity.name || '',
+      nameEn: amenity.nameEn || '',
+      description: amenity.description || '',
+      category: amenity.category || '',
+      icon: amenity.icon || '',
+      isActive: amenity.isActive ?? true,
+      sortOrder: amenity.sortOrder || 0
     });
     setIsModalOpen(true);
   };
+
+  // Effect để đảm bảo form được update khi editingAmenity thay đổi
+  useEffect(() => {
+    if (editingAmenity) {
+      console.log('Setting form data for:', editingAmenity); // Debug log
+      setFormData({
+        name: editingAmenity.name || '',
+        nameEn: editingAmenity.nameEn || '',
+        description: editingAmenity.description || '',
+        category: editingAmenity.category || '',
+        icon: editingAmenity.icon || '',
+        isActive: editingAmenity.isActive ?? true,
+        sortOrder: editingAmenity.sortOrder || 0
+      });
+    }
+  }, [editingAmenity]);
+
   const handleDelete = (amenity: Amenity) => {
     setDeleteConfirm({ isOpen: true, amenity });
   };
@@ -145,28 +136,71 @@ export default function AmenitiesPage() {
   const confirmDelete = async () => {
     if (!deleteConfirm.amenity) return;
     
-    setIsLoading(true);
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setAmenities(prev => prev.filter(a => a.id !== deleteConfirm.amenity!.id));
-      success('Xóa tiện ích thành công', `${deleteConfirm.amenity.name} đã được xóa`);
-      setDeleteConfirm({ isOpen: false, amenity: null });
+      const success = await deleteAmenity(deleteConfirm.amenity.id);
+      if (success) {
+        setDeleteConfirm({ isOpen: false, amenity: null });
+      }
     } catch (err) {
       error('Không thể xóa tiện ích', 'Vui lòng thử lại sau');
-    } finally {
-      setIsLoading(false);
+    }
+  };
+
+  const handleToggleStatus = async (amenity: Amenity) => {
+    try {
+      await toggleAmenityStatus(amenity.id, !amenity.isActive);
+    } catch (err) {
+      error('Không thể thay đổi trạng thái', 'Vui lòng thử lại sau');
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedAmenities.length === 0) {
+      warning('Vui lòng chọn ít nhất một tiện ích để xóa');
+      return;
+    }
+
+    // Hiện modal xác nhận
+    setBulkDeleteConfirm({ isOpen: true, count: selectedAmenities.length });
+  };
+
+  const confirmBulkDelete = async () => {
+    try {
+      const success = await bulkDelete(selectedAmenities);
+      if (success) {
+        setSelectedAmenities([]);
+        setBulkDeleteConfirm({ isOpen: false, count: 0 });
+      }
+    } catch (err) {
+      error('Không thể xóa các tiện ích đã chọn', 'Vui lòng thử lại sau');
+    }
+  };
+
+  const handleBulkToggleStatus = async (isActive: boolean) => {
+    if (selectedAmenities.length === 0) {
+      warning('Vui lòng chọn ít nhất một tiện ích');
+      return;
+    }
+
+    try {
+      const success = await bulkUpdateStatus(selectedAmenities, isActive);
+      if (success) {
+        setSelectedAmenities([]);
+      }
+    } catch (err) {
+      error('Không thể thay đổi trạng thái các tiện ích đã chọn', 'Vui lòng thử lại sau');
     }
   };
 
   const resetForm = () => {
     setFormData({
       name: '',
+      nameEn: '',
       description: '',
-      category: 'general',
+      category: '',
       icon: '',
-      isActive: true
+      isActive: true,
+      sortOrder: 0
     });
     setEditingAmenity(null);
     setIsModalOpen(false);
@@ -192,12 +226,79 @@ export default function AmenitiesPage() {
     return colors[category as keyof typeof colors] || 'bg-gray-500';
   };
 
+  // Helper function để chuyển icon name thành emoji
+  const getIconDisplay = (iconName: string): string => {
+    const iconMap: Record<string, string> = {
+      // Technology
+      'wifi': '📶', 'tv': '📺', 'computer': '💻', 'phone': '📞', 'printer': '🖨️',
+      // Bathroom  
+      'shower': '🚿', 'bathtub': '🛁', 'toilet': '🚽', 'towel': '🧴',
+      // Comfort
+      'bed': '🛏️', 'pillow': '🛌', 'air-conditioning': '❄️', 'heating': '🔥', 'fan': '💨',
+      // Food & Beverage
+      'coffee': '☕', 'minibar': '🍷', 'restaurant': '🍽️', 'room-service': '🛎️', 'kettle': '🫖',
+      // Recreation
+      'swimming-pool': '🏊', 'gym': '💪', 'spa': '🧘', 'games': '🎮', 'library': '📚',
+      // Safety & Security
+      'safe': '🔒', 'security': '🛡️', 'fire-safety': '🚨', 'cctv': '📹',
+      // Transportation
+      'parking': '🅿️', 'valet': '🔑', 'shuttle': '🚐', 'taxi': '🚕',
+      // General
+      'concierge': '🤵', 'cleaning': '🧹', 'laundry': '👕', 'balcony': '🏙️', 
+      'garden': '🌳', 'business': '💼', 'elevator': '🛗', 'reception': '🏨',
+      'luggage': '🧳', 'pet-friendly': '🐕', 'non-smoking': '🚭'
+    };
+    
+    // Nếu đã là emoji thì trả về trực tiếp
+    if (iconName && /\p{Emoji}/u.test(iconName)) {
+      return iconName;
+    }
+    
+    // Nếu tìm thấy trong map thì trả về emoji
+    return iconMap[iconName] || iconName || '📦';
+  };
+
   const columns = [
+    {
+      key: 'select',
+      label: (
+        <input
+          type="checkbox"
+          checked={selectedAmenities.length === amenities.length && amenities.length > 0}
+          onChange={(e) => {
+            if (e.target.checked) {
+              setSelectedAmenities(amenities.map(a => a.id));
+            } else {
+              setSelectedAmenities([]);
+            }
+          }}
+          className="rounded border-gray-300"
+          aria-label="Chọn tất cả tiện ích"
+        />
+      ),
+      render: (amenity: Amenity) => (
+        <input
+          type="checkbox"
+          checked={selectedAmenities.includes(amenity.id)}
+          onChange={(e) => {
+            if (e.target.checked) {
+              setSelectedAmenities(prev => [...prev, amenity.id]);
+            } else {
+              setSelectedAmenities(prev => prev.filter(id => id !== amenity.id));
+            }
+          }}
+          className="rounded border-gray-300"
+          aria-label={`Chọn tiện ích ${amenity.name}`}
+        />
+      )
+    },
     {
       key: 'icon',
       label: 'Icon',
       render: (amenity: Amenity) => (
-        <div className="text-2xl">{amenity.icon}</div>
+        <div className="text-2xl" title={amenity.icon}>
+          {getIconDisplay(amenity.icon)}
+        </div>
       )
     },
     {
@@ -206,6 +307,9 @@ export default function AmenitiesPage() {
       render: (amenity: Amenity) => (
         <div>
           <div className="font-medium text-deep-navy">{amenity.name}</div>
+          {amenity.nameEn && (
+            <div className="text-sm text-gray-500 italic">{amenity.nameEn}</div>
+          )}
           <div className="text-sm text-gray-500">{amenity.description}</div>
         </div>
       )
@@ -223,13 +327,34 @@ export default function AmenitiesPage() {
       key: 'status',
       label: 'Trạng thái',
       render: (amenity: Amenity) => (
-        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-          amenity.isActive 
-            ? 'bg-seafoam-green text-white' 
-            : 'bg-gray-300 text-gray-700'
-        }`}>
-          {amenity.isActive ? 'Hoạt động' : 'Tạm ngưng'}
-        </span>
+        <div className="flex items-center space-x-2">
+          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+            amenity.isActive 
+              ? 'bg-seafoam-green text-white' 
+              : 'bg-gray-300 text-gray-700'
+          }`}>
+            {amenity.isActive ? 'Hoạt động' : 'Tạm ngưng'}
+          </span>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => handleToggleStatus(amenity)}
+            className={`text-xs ${
+              amenity.isActive 
+                ? 'text-gray-600 hover:text-gray-800' 
+                : 'text-seafoam-green hover:text-seafoam-green/80'
+            }`}
+          >
+            {amenity.isActive ? 'Tắt' : 'Bật'}
+          </Button>
+        </div>
+      )
+    },
+    {
+      key: 'sortOrder',
+      label: 'Thứ tự',
+      render: (amenity: Amenity) => (
+        <span className="text-sm text-gray-600">{amenity.sortOrder || 0}</span>
       )
     },
     {
@@ -244,7 +369,8 @@ export default function AmenitiesPage() {
             className="text-ocean-blue border-ocean-blue hover:bg-ocean-blue hover:text-white"
           >
             <EditIcon />
-          </Button>          <Button
+          </Button>
+          <Button
             size="sm"
             variant="outline"
             onClick={() => handleDelete(amenity)}
@@ -336,17 +462,227 @@ export default function AmenitiesPage() {
           </Card>
         </div>
 
-        {/* Amenities Table */}
+        {/* Search and Filter Controls */}
+        <Card className="p-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Tìm kiếm
+              </label>
+              <Input
+                type="text"
+                placeholder="Tìm kiếm tiện ích..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Danh mục
+              </label>
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-ocean-blue"
+                title="Chọn danh mục"
+              >
+                <option value="">Tất cả danh mục</option>
+                {categories.map(category => (
+                  <option key={category} value={category}>
+                    {getCategoryLabel(category)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-end">
+              <Button
+                onClick={refreshAmenities}
+                disabled={isLoading}
+                className="bg-ocean-blue hover:bg-ocean-blue/90"
+              >
+                {isLoading ? 'Đang tải...' : 'Làm mới'}
+              </Button>
+            </div>
+            <div className="flex items-end justify-end">
+              {selectedAmenities.length > 0 && (
+                <div className="flex space-x-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleBulkToggleStatus(true)}
+                    className="text-seafoam-green border-seafoam-green"
+                  >
+                    Kích hoạt ({selectedAmenities.length})
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleBulkToggleStatus(false)}
+                    className="text-gray-600 border-gray-600"
+                  >
+                    Tắt ({selectedAmenities.length})
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleBulkDelete}
+                    className="text-coral-pink border-coral-pink"
+                  >
+                    Xóa ({selectedAmenities.length})
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        </Card>
+
+        {/* Main Table */}
         <Card>
-          <div className="p-6">
+          <div className="p-4">
             <h3 className="text-lg font-semibold text-deep-navy mb-4">
-              Danh sách tiện nghi
+              Danh sách tiện nghi ({amenities.length})
             </h3>
-            <Table
-              data={amenities}
-              columns={columns}
-              emptyMessage="Chưa có tiện nghi nào được thêm"
-            />
+
+            {isLoading ? (
+              <div className="flex justify-center items-center h-32">
+                <div className="text-gray-500">Đang tải...</div>
+              </div>
+            ) : amenities.length === 0 ? (
+              <div className="flex justify-center items-center h-32">
+                <div className="text-gray-500">Không có tiện ích nào</div>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full table-auto">
+                  <thead>
+                    <tr className="bg-gray-50">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <input
+                          type="checkbox"
+                          checked={selectedAmenities.length === amenities.length && amenities.length > 0}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedAmenities(amenities.map(a => a.id));
+                            } else {
+                              setSelectedAmenities([]);
+                            }
+                          }}
+                          className="rounded border-gray-300"
+                          title="Chọn tất cả"
+                          aria-label="Chọn tất cả tiện ích"
+                        />
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Icon
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Tên tiện nghi
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Danh mục
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Trạng thái
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Thứ tự
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Thao tác
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {amenities.map((amenity) => (
+                      <tr key={amenity.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <input
+                            type="checkbox"
+                            checked={selectedAmenities.includes(amenity.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedAmenities(prev => [...prev, amenity.id]);
+                              } else {
+                                setSelectedAmenities(prev => prev.filter(id => id !== amenity.id));
+                              }
+                            }}
+                            className="rounded border-gray-300"
+                            title={`Chọn ${amenity.name}`}
+                            aria-label={`Chọn tiện ích ${amenity.name}`}
+                          />
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <div className="text-2xl" title={amenity.icon}>
+                            {getIconDisplay(amenity.icon)}
+                          </div>
+                        </td>
+                        <td className="px-4 py-4">
+                          <div>
+                            <div className="font-medium text-deep-navy">{amenity.name}</div>
+                            {amenity.nameEn && (
+                              <div className="text-sm text-gray-500 italic">{amenity.nameEn}</div>
+                            )}
+                            <div className="text-sm text-gray-500">{amenity.description}</div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium text-white ${getCategoryColor(amenity.category)}`}>
+                            {getCategoryLabel(amenity.category)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <div className="flex items-center space-x-2">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              amenity.isActive 
+                                ? 'bg-seafoam-green text-white' 
+                                : 'bg-gray-300 text-gray-700'
+                            }`}>
+                              {amenity.isActive ? 'Hoạt động' : 'Tạm ngưng'}
+                            </span>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleToggleStatus(amenity)}
+                              className={`text-xs ${
+                                amenity.isActive 
+                                  ? 'text-gray-600 hover:text-gray-800' 
+                                  : 'text-seafoam-green hover:text-seafoam-green/80'
+                              }`}
+                            >
+                              {amenity.isActive ? 'Tắt' : 'Bật'}
+                            </Button>
+                          </div>
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <span className="text-sm text-gray-600">{amenity.sortOrder || 0}</span>
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <div className="flex space-x-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEdit(amenity)}
+                              className="text-ocean-blue border-ocean-blue hover:bg-ocean-blue hover:text-white"
+                            >
+                              <EditIcon />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleDelete(amenity)}
+                              className="text-coral-pink border-coral-pink hover:bg-coral-pink hover:text-white"
+                            >
+                              <TimesIcon />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </Card>
 
@@ -359,7 +695,7 @@ export default function AmenitiesPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-deep-navy mb-2">
-                Tên tiện nghi
+                Tên tiện nghi <span className="text-red-500">*</span>
               </label>
               <Input
                 type="text"
@@ -372,48 +708,77 @@ export default function AmenitiesPage() {
 
             <div>
               <label className="block text-sm font-medium text-deep-navy mb-2">
-                Mô tả
+                Tên tiếng Anh
               </label>
-              <textarea
-                value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                placeholder="Nhập mô tả tiện nghi"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-ocean-blue focus:border-transparent"
-                rows={3}
-                required
+              <Input
+                type="text"
+                value={formData.nameEn}
+                onChange={(e) => setFormData(prev => ({ ...prev, nameEn: e.target.value }))}
+                placeholder="Nhập tên tiếng Anh (tùy chọn)"
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-deep-navy mb-2">
-                Danh mục
-              </label>              <select
+                Mô tả <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => {
+                  console.log('Description changed to:', e.target.value); // Debug log
+                  setFormData(prev => ({ ...prev, description: e.target.value }));
+                }}
+                placeholder="Nhập mô tả tiện nghi"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-ocean-blue focus:border-transparent"
+                rows={3}
+                required
+              />
+              {/* Debug info */}
+              <div className="text-xs text-gray-400 mt-1">
+                Current value: {formData.description || 'empty'} (Length: {(formData.description || '').length})
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-deep-navy mb-2">
+                Danh mục <span className="text-red-500">*</span>
+              </label>
+              <select
                 value={formData.category}
                 onChange={(e) => setFormData(prev => ({ 
                   ...prev, 
-                  category: e.target.value as 'general' | 'room' | 'hotel' | 'wellness'
+                  category: e.target.value
                 }))}
                 title="Chọn danh mục tiện nghi"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-ocean-blue focus:border-transparent"
                 required
               >
-                <option value="general">Chung</option>
-                <option value="room">Phòng</option>
-                <option value="hotel">Khách sạn</option>
-                <option value="wellness">Sức khỏe</option>
+                <option value="">Chọn danh mục</option>
+                {categories.map(category => (
+                  <option key={category} value={category}>
+                    {getCategoryLabel(category)}
+                  </option>
+                ))}
               </select>
             </div>
 
+            <IconPicker
+              label="Icon"
+              value={formData.icon}
+              onChange={(icon) => setFormData(prev => ({ ...prev, icon }))}
+              required
+            />
+
             <div>
               <label className="block text-sm font-medium text-deep-navy mb-2">
-                Icon (emoji)
+                Thứ tự sắp xếp
               </label>
               <Input
-                type="text"
-                value={formData.icon}
-                onChange={(e) => setFormData(prev => ({ ...prev, icon: e.target.value }))}
-                placeholder="Chọn emoji (ví dụ: 🏊‍♂️)"
-                required
+                type="number"
+                value={formData.sortOrder}
+                onChange={(e) => setFormData(prev => ({ ...prev, sortOrder: parseInt(e.target.value) || 0 }))}
+                placeholder="0"
+                min="0"
               />
             </div>
 
@@ -435,16 +800,22 @@ export default function AmenitiesPage() {
                 type="button"
                 variant="outline"
                 onClick={resetForm}
+                disabled={isCreating || isUpdating}
               >
                 Hủy
               </Button>
               <Button
                 type="submit"
                 className="bg-gradient-to-r from-ocean-blue to-seafoam-green"
+                disabled={isCreating || isUpdating}
               >
-                {editingAmenity ? 'Cập nhật' : 'Thêm mới'}
+                {isCreating || isUpdating 
+                  ? (editingAmenity ? 'Đang cập nhật...' : 'Đang tạo...') 
+                  : (editingAmenity ? 'Cập nhật' : 'Thêm mới')
+                }
               </Button>
-            </div>          </form>
+            </div>
+          </form>
         </Modal>
 
         {/* Delete Confirmation Dialog */}
@@ -457,7 +828,20 @@ export default function AmenitiesPage() {
           confirmText="Xóa"
           cancelText="Hủy"
           type="danger"
-          isLoading={isLoading}
+          isLoading={isDeleting}
+        />
+
+        {/* Bulk Delete Confirmation Dialog */}
+        <ConfirmDialog
+          isOpen={bulkDeleteConfirm.isOpen}
+          onClose={() => setBulkDeleteConfirm({ isOpen: false, count: 0 })}
+          onConfirm={confirmBulkDelete}
+          title="Xác nhận xóa nhiều tiện ích"
+          message={`Bạn có chắc chắn muốn xóa ${bulkDeleteConfirm.count} tiện ích đã chọn? Hành động này không thể hoàn tác.`}
+          confirmText="Xóa tất cả"
+          cancelText="Hủy"
+          type="danger"
+          isLoading={isDeleting}
         />
       </div>
     </HotelLayout>

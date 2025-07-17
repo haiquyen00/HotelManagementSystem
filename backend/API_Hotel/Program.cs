@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Business.Data;
+using Business.Extensions;
 using DTO.System; // EmailSettings
 using Service.Interfaces;
 using Service.Implementations;
@@ -21,6 +22,7 @@ builder.Services.AddDbContext<HotelManagementDbContext>(options =>
 // Add Repository Layer
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
+builder.Services.AddScoped<IAmenityRepository, AmenityRepository>();
 
 // Add Service Layer
 builder.Services.AddScoped<Service.Interfaces.IPasswordService, Service.Implementations.PasswordService>();
@@ -28,6 +30,7 @@ builder.Services.AddScoped<Service.Interfaces.IUserService, Service.Implementati
 builder.Services.AddScoped<Service.Interfaces.IJwtService, Service.Implementations.JwtService>();
 builder.Services.AddScoped<Service.Interfaces.IAuthService, Service.Implementations.AuthService>();
 builder.Services.AddScoped<Service.Interfaces.IGoogleAuthService, Service.Implementations.GoogleAuthService>();
+builder.Services.AddScoped<Service.Interfaces.IAmenityService, Service.Implementations.AmenityService>();
 
 // Add Email Service
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
@@ -226,14 +229,19 @@ app.MapControllers();
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<HotelManagementDbContext>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    
     try
     {
         context.Database.EnsureCreated();
+        
+        // Seed amenities data
+        await context.SeedAmenitiesAsync();
+        logger.LogInformation("Database seeded successfully");
     }
     catch (Exception ex)
     {
-        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred while creating the database.");
+        logger.LogError(ex, "An error occurred while creating/seeding the database.");
     }
 }
 

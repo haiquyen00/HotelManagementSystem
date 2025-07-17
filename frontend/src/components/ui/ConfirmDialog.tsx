@@ -76,10 +76,10 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 
   return (
     <div 
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 modal-backdrop flex items-center justify-center z-50 p-4"
       onClick={handleBackdropClick}
     >
-      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 transform transition-all duration-200 scale-100">
+      <div className="modal-content max-w-md w-full mx-4 rounded-xl">
         <div className="p-6">
           {/* Icon and Title */}
           <div className="flex items-start space-x-4">

@@ -15,10 +15,12 @@ export interface Room {
 export interface Amenity {
   id: string;
   name: string;
-  category: 'general' | 'room' | 'hotel' | 'wellness';
+  nameEn?: string;
+  category: string;
   description: string;
   icon: string;
   isActive: boolean;
+  sortOrder?: number;
   createdAt: Date;
   updatedAt: Date;
 }

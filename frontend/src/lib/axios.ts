@@ -3,7 +3,7 @@ import { STORAGE_KEYS } from '@/constants';
 
 // Tạo instance axios với cấu hình cơ bản
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://localhost:7231/api'|| 'https://localhost:5186/api',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -15,7 +15,7 @@ api.interceptors.request.use(
   (config) => {
     // Chỉ lấy token khi đang ở client side
     if (typeof window !== 'undefined') {
-      const token = localStorage.getItem(STORAGE_KEYS.TOKEN);
+      const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -50,7 +50,7 @@ api.interceptors.response.use(
               const { accessToken, refreshToken: newRefreshToken } = response.data.data;
               
               // Lưu token mới
-              localStorage.setItem(STORAGE_KEYS.TOKEN, accessToken);
+              localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
               localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, newRefreshToken);
               
               // Retry request với token mới
@@ -64,7 +64,7 @@ api.interceptors.response.use(
         }
 
         // Clear tokens và redirect
-        localStorage.removeItem(STORAGE_KEYS.TOKEN);
+        localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
         localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
         localStorage.removeItem(STORAGE_KEYS.USER);
         

@@ -146,6 +146,8 @@ namespace DTO.Hotel
         [StringLength(50)]
         public string Category { get; set; } = string.Empty;
 
+        public bool IsActive { get; set; } = true;
+
         public int SortOrder { get; set; }
     }
 
@@ -177,5 +179,29 @@ namespace DTO.Hotel
     {
         public List<AmenityDto> Amenities { get; set; } = new();
         public Dictionary<string, List<AmenityDto>> GroupedByCategory { get; set; } = new();
+    }
+
+    public class AmenitySearchRequest : PaginationRequest
+    {
+        public string? SearchTerm { get; set; }
+        public string? Category { get; set; }
+        public bool? IsActive { get; set; }
+        public string OrderBy { get; set; } = "name";
+        public bool Descending { get; set; } = false;
+    }
+
+    public class AmenitySortOrderRequest
+    {
+        [Required]
+        public Guid Id { get; set; }
+        
+        [Required]
+        public int SortOrder { get; set; }
+    }
+
+    public class AmenityPagedResponse : PaginationResponse<AmenityDto>
+    {
+        public Dictionary<string, int> CategoryCounts { get; set; } = new();
+        public List<string> AvailableCategories { get; set; } = new();
     }
 }
