@@ -49,7 +49,7 @@ namespace DTO.Base
 
     public class ServiceResult : ServiceResult<object>
     {
-        public static new ServiceResult SuccessResult(string message = "Thành công")
+        public static ServiceResult SuccessResult(string message = "Thành công")
         {
             return new ServiceResult
             {

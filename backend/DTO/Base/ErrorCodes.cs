@@ -45,6 +45,25 @@ namespace DTO.Base
         public const string SRV_EMAIL_SERVICE_ERROR = "SRV_002";
         public const string SRV_INTERNAL_ERROR = "SRV_003";
         public const string SRV_SERVICE_UNAVAILABLE = "SRV_004";
+        
+        // Room Type Errors (RMT_xxx)
+        public const string RMT_NOT_FOUND = "RMT_001";
+        public const string RMT_NAME_EXISTS = "RMT_002";
+        public const string RMT_CANNOT_DELETE_HAS_ROOMS = "RMT_003";
+        public const string RMT_CANNOT_DELETE_HAS_BOOKINGS = "RMT_004";
+        public const string RMT_INVALID_PRICE_RANGE = "RMT_005";
+        public const string RMT_INVALID_OCCUPANCY = "RMT_006";
+        public const string RMT_HOTEL_NOT_FOUND = "RMT_007";
+        public const string RMT_IMAGE_UPLOAD_FAILED = "RMT_008";
+        public const string RMT_STATUS_TRANSITION_INVALID = "RMT_009";
+        public const string RMT_DUPLICATE_FAILED = "RMT_010";
+        
+        // Room Errors (ROM_xxx)
+        public const string ROM_NOT_FOUND = "ROM_001";
+        public const string ROM_NUMBER_EXISTS = "ROM_002";
+        public const string ROM_CANNOT_DELETE_HAS_BOOKINGS = "ROM_003";
+        public const string ROM_STATUS_TRANSITION_INVALID = "ROM_004";
+        public const string ROM_ROOM_TYPE_NOT_FOUND = "ROM_005";
     }
 
     public static class ErrorMessages
@@ -93,7 +112,26 @@ namespace DTO.Base
             [ErrorCodes.SRV_DATABASE_ERROR] = "Lỗi cơ sở dữ liệu",
             [ErrorCodes.SRV_EMAIL_SERVICE_ERROR] = "Lỗi dịch vụ gửi email",
             [ErrorCodes.SRV_INTERNAL_ERROR] = "Lỗi hệ thống nội bộ",
-            [ErrorCodes.SRV_SERVICE_UNAVAILABLE] = "Dịch vụ tạm thời không khả dụng"
+            [ErrorCodes.SRV_SERVICE_UNAVAILABLE] = "Dịch vụ tạm thời không khả dụng",
+            
+            // Room Type Messages
+            [ErrorCodes.RMT_NOT_FOUND] = "Loại phòng không tồn tại",
+            [ErrorCodes.RMT_NAME_EXISTS] = "Tên loại phòng đã tồn tại",
+            [ErrorCodes.RMT_CANNOT_DELETE_HAS_ROOMS] = "Không thể xóa loại phòng đang có phòng",
+            [ErrorCodes.RMT_CANNOT_DELETE_HAS_BOOKINGS] = "Không thể xóa loại phòng đang có booking",
+            [ErrorCodes.RMT_INVALID_PRICE_RANGE] = "Giá phòng không hợp lệ",
+            [ErrorCodes.RMT_INVALID_OCCUPANCY] = "Số lượng người ở không hợp lệ",
+            [ErrorCodes.RMT_HOTEL_NOT_FOUND] = "Khách sạn không tồn tại",
+            [ErrorCodes.RMT_IMAGE_UPLOAD_FAILED] = "Upload hình ảnh thất bại",
+            [ErrorCodes.RMT_STATUS_TRANSITION_INVALID] = "Không thể chuyển trạng thái loại phòng",
+            [ErrorCodes.RMT_DUPLICATE_FAILED] = "Sao chép loại phòng thất bại",
+            
+            // Room Messages
+            [ErrorCodes.ROM_NOT_FOUND] = "Phòng không tồn tại",
+            [ErrorCodes.ROM_NUMBER_EXISTS] = "Số phòng đã tồn tại",
+            [ErrorCodes.ROM_CANNOT_DELETE_HAS_BOOKINGS] = "Không thể xóa phòng đang có booking",
+            [ErrorCodes.ROM_STATUS_TRANSITION_INVALID] = "Không thể chuyển trạng thái phòng",
+            [ErrorCodes.ROM_ROOM_TYPE_NOT_FOUND] = "Loại phòng không tồn tại"
         };
 
         public static string GetMessage(string errorCode)

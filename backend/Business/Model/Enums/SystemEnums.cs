@@ -8,22 +8,6 @@ namespace Business.Model.Enums
         Customer
     }
 
-    public enum RoomStatus
-    {
-        Available,
-        Occupied,
-        Cleaning,
-        Maintenance,
-        OutOfOrder
-    }
-
-    public enum RoomTypeStatus
-    {
-        Active,
-        Inactive,
-        Maintenance
-    }
-
     public enum BookingStatus
     {
         Pending,
@@ -95,16 +79,6 @@ namespace Business.Model.Enums
         Customer,
         Staff,
         System
-    }
-
-    public enum BedType
-    {
-        Single,
-        Twin,
-        Double,
-        Queen,
-        King,
-        SuperKing
     }
 
     public enum BookingSource

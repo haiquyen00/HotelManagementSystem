@@ -23,6 +23,9 @@ builder.Services.AddDbContext<HotelManagementDbContext>(options =>
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 builder.Services.AddScoped<IAmenityRepository, AmenityRepository>();
+builder.Services.AddScoped<IRoomTypeRepository, RoomTypeRepository>();
+builder.Services.AddScoped<IRoomRepository, RoomRepository>();
+builder.Services.AddScoped<Repositories.Hotel.IHotelRepository, Repositories.Hotel.HotelRepository>();
 
 // Add Service Layer
 builder.Services.AddScoped<Service.Interfaces.IPasswordService, Service.Implementations.PasswordService>();
@@ -31,6 +34,7 @@ builder.Services.AddScoped<Service.Interfaces.IJwtService, Service.Implementatio
 builder.Services.AddScoped<Service.Interfaces.IAuthService, Service.Implementations.AuthService>();
 builder.Services.AddScoped<Service.Interfaces.IGoogleAuthService, Service.Implementations.GoogleAuthService>();
 builder.Services.AddScoped<Service.Interfaces.IAmenityService, Service.Implementations.AmenityService>();
+builder.Services.AddScoped<Service.Interfaces.IRoomTypeService, Service.Implementations.RoomTypeService>();
 
 // Add Email Service
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
